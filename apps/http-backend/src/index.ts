@@ -1,13 +1,21 @@
+import "./env";
 import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { JWT_SECRET } from "@repo/backend-common/config";
 import { prismaClient } from "@repo/db/client";
-import { CreateUserSchema } from "@repo/common/config";
+import { CreateUserSchema, SigninSchema } from "@repo/common/config";
 import { middleware } from "./middleware";
+import cors from "cors";
 
 const app = express();
 
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 app.post("/signup", async (req, res) => {
@@ -49,6 +57,7 @@ app.post("/signup", async (req, res) => {
       userId: user.id,
     });
   } catch (e) {
+    console.error(e);
     res.status(500).json({
       message: "Internal server error",
     });
@@ -57,7 +66,15 @@ app.post("/signup", async (req, res) => {
 
 app.post("/signin", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const data = SigninSchema.safeParse(req.body);
+
+    if (!data.success) {
+      return res.status(400).json({
+        message: "Invalid input",
+      });
+    }
+
+    const { email, password } = data.data;
 
     const user = await prismaClient.user.findUnique({
       where: {
@@ -84,6 +101,9 @@ app.post("/signin", async (req, res) => {
         userId: user.id,
       },
       JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
     );
 
     res.json({
@@ -96,9 +116,27 @@ app.post("/signin", async (req, res) => {
   }
 });
 
-app.post("/room", middleware, async (req: any, res) => {
+app.post("/room", middleware, async (req, res) => {
   try {
     const { slug } = req.body;
+
+    const existingRoom = await prismaClient.room.findUnique({
+      where: {
+        slug,
+      },
+    });
+
+    if (existingRoom) {
+      return res.status(409).json({
+        message: "Room already exists",
+      });
+    }
+
+    if (!req.userId) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
 
     const room = await prismaClient.room.create({
       data: {
@@ -113,6 +151,30 @@ app.post("/room", middleware, async (req: any, res) => {
   } catch (e) {
     res.status(500).json({
       message: "Could not create room",
+    });
+  }
+});
+
+app.get("/chats/:roomId", middleware, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    const chats = await prismaClient.chat.findMany({
+      where: {
+        roomId: Number(roomId),
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 50,
+    });
+
+    res.json({
+      chats: chats.reverse(),
+    });
+  } catch (e) {
+    res.status(500).json({
+      message: "Could not fetch chats",
     });
   }
 });
