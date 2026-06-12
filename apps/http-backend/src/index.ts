@@ -158,6 +158,22 @@ app.post("/room", middleware, async (req, res) => {
 app.get("/chats/:roomId", middleware, async (req, res) => {
   try {
     const { roomId } = req.params;
+    const user = await prismaClient.user.findUnique({
+      where: {
+        id: req.userId,
+      },
+      include: {
+        rooms: true,
+      },
+    });
+
+    const hasAccess = user?.rooms.some((room) => room.id === Number(roomId));
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        message: "Forbidden",
+      });
+    }
 
     const chats = await prismaClient.chat.findMany({
       where: {
