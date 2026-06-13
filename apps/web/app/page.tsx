@@ -1,10 +1,9 @@
-"use client";
+import Link from "next/link";
 
-import { api } from "../lib/axios";
 export default function Home() {
   return (
     <div>
-      <a href="/signup">Signup</a>
+      <Link href="/signup">Signup</Link>
     </div>
   );
 }

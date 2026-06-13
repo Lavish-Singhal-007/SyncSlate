@@ -92,7 +92,6 @@ wss.on("connection", async (ws, request) => {
             if (user.rooms.includes(roomId)) {
               user.socket.send(
                 JSON.stringify({
-                  type: "chat",
                   roomId,
                   message,
                   userId,
