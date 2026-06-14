@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil, ArrowRight, Users, Zap, Shield, Globe } from "lucide-react";
+import { Pencil, ArrowRight, Users, Zap, Globe } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -90,40 +90,98 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Abstract Hero Illustration Area */}
-        <div className="mx-auto mt-20 max-w-5xl px-6">
-          <div className="relative aspect-video w-full overflow-hidden rounded-3xl border border-slate-200 bg-[#F7F6FF] shadow-2xl shadow-slate-200/50">
-            {/* Decorative Canvas Elements */}
-            <div className="absolute left-20 top-20 h-48 w-72 rounded-3xl border border-[#E8E6FF] bg-white p-6 shadow-sm">
-              <div className="h-4 w-32 rounded-full bg-slate-200" />
-              <div className="mt-6 h-3 w-56 rounded-full bg-slate-100" />
-              <div className="mt-4 h-3 w-48 rounded-full bg-slate-100" />
-              <div className="mt-10 h-8 w-24 rounded-full bg-[#635BFF]" />
+        {/* Browser Mockup Hero Illustration */}
+        <div className="mx-auto mt-16 max-w-4xl px-6">
+          <div className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/40">
+            {/* Browser Top Bar */}
+            <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
+              <div className="h-3 w-3 rounded-full bg-red-400"></div>
+              <div className="h-3 w-3 rounded-full bg-yellow-400"></div>
+              <div className="h-3 w-3 rounded-full bg-green-400"></div>
             </div>
 
-            <div className="absolute right-32 top-10 h-32 w-36 rotate-6 rounded-2xl border border-yellow-300 bg-yellow-100 p-4 shadow-sm">
-              <div className="h-3 w-20 rounded-full bg-yellow-300" />
-              <div className="mt-4 h-3 w-24 rounded-full bg-yellow-300" />
-            </div>
+            {/* Canvas Area */}
+            <div className="relative h-100 w-full bg-[#F8FAFC] overflow-hidden">
+              {/* Subtle Grid Background */}
+              <div
+                className="absolute inset-0 opacity-50"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(#CBD5E1 1px, transparent 1px)",
+                  backgroundSize: "24px 24px",
+                }}
+              ></div>
 
-            <div className="absolute bottom-20 right-48 h-32 w-36 -rotate-3 rounded-2xl border border-green-300 bg-green-100 p-4 shadow-sm">
-              <div className="h-3 w-16 rounded-full bg-green-300" />
-              <div className="mt-4 h-3 w-20 rounded-full bg-green-300" />
-            </div>
+              {/* Workflow Node 1 */}
+              <div className="absolute left-10 top-20 w-48 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="mb-3 h-2 w-20 rounded-full bg-slate-200"></div>
+                <div className="h-2 w-full rounded-full bg-slate-100"></div>
+                <div className="mt-2 h-2 w-2/3 rounded-full bg-slate-100"></div>
+              </div>
 
-            {/* Connecting Lines */}
-            <svg
-              className="absolute inset-0 h-full w-full"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M 380 180 C 500 180, 600 100, 750 120"
-                stroke="#BDB7FF"
-                strokeWidth="4"
-                fill="none"
-                strokeDasharray="8 8"
-              />
-            </svg>
+              {/* Workflow Node 2 (Selected/Active) */}
+              <div className="absolute left-75 top-32 w-56 rounded-xl border-2 border-[#635BFF] bg-white p-4 shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="h-2 w-24 rounded-full bg-[#635BFF]/20"></div>
+                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-[#635BFF] text-[10px] text-white">
+                    ✓
+                  </div>
+                </div>
+                <div className="h-2 w-full rounded-full bg-slate-100"></div>
+                <div className="mt-2 h-2 w-4/5 rounded-full bg-slate-100"></div>
+                <div className="mt-4 h-8 w-full rounded-lg bg-[#F7F6FF]"></div>
+              </div>
+
+              {/* Shape / Note */}
+              <div className="absolute right-24 top-16 h-28 w-32 rotate-3 rounded-xl border border-yellow-300 bg-yellow-100 p-4 shadow-sm">
+                <div className="h-2 w-16 rounded-full bg-yellow-400"></div>
+                <div className="mt-3 h-2 w-20 rounded-full bg-yellow-400"></div>
+                <div className="mt-3 h-2 w-12 rounded-full bg-yellow-400"></div>
+              </div>
+
+              {/* Connecting SVG Curves/Squiggles */}
+              <svg
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M 202 110 C 250 110, 250 160, 300 160"
+                  stroke="#A5A0FF"
+                  strokeWidth="3"
+                  fill="none"
+                  strokeDasharray="6 6"
+                />
+                <path
+                  d="M 524 160 C 600 160, 600 100, 650 100"
+                  stroke="#BDB7FF"
+                  strokeWidth="3"
+                  fill="none"
+                />
+              </svg>
+
+              {/* Multiplayer Cursor */}
+              <div className="absolute left-120 top-35 flex items-center gap-2">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="text-pink-500 drop-shadow-md"
+                >
+                  <path
+                    d="M5.65376 21.2581C5.12053 21.4891 4.5 21.0988 4.5 20.5186V4.18431C4.5 3.58557 5.15024 3.19537 5.6726 3.44754L20.4496 10.5847C20.985 10.8433 20.9875 11.6033 20.4539 11.8656L14.2818 14.9004C14.0734 15.0029 13.9134 15.1691 13.8214 15.3813L10.8521 22.228C10.6087 22.7891 9.82779 22.7885 9.58514 22.2269L5.65376 21.2581Z"
+                    fill="currentColor"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <span className="rounded-full bg-pink-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                  Alice
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
