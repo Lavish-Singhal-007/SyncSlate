@@ -63,40 +63,67 @@ wss.on("connection", async (ws, request) => {
 
         // JOIN ROOM
         if (parsedData.type === "join_room") {
-          currentUser.rooms.push(parsedData.roomId);
+          currentUser.rooms.push(Number(parsedData.roomId));
 
           ws.send(
             JSON.stringify({
               type: "joined",
-              roomId: parsedData.roomId,
+              roomId: Number(parsedData.roomId),
             }),
           );
 
           return;
         }
 
-        // SEND CHAT
-        if (parsedData.type === "chat") {
-          const roomId = parsedData.roomId;
-          const message = parsedData.message;
+        // SEND SHAPE
+        if (parsedData.type === "shape") {
+          const roomId = Number(parsedData.roomId);
+          const shape = parsedData.shape;
 
-          const chat = await prismaClient.chat.create({
+          if (!currentUser.rooms.includes(roomId)) {
+            return;
+          }
+
+          const currShape = await prismaClient.shape.create({
             data: {
               roomId,
-              message,
+              shape,
               userId,
             },
           });
 
           users.forEach((user) => {
-            if (user.rooms.includes(roomId)) {
+            if (user.rooms.includes(roomId) && user.socket !== ws) {
               user.socket.send(
                 JSON.stringify({
+                  type: "shape",
                   roomId,
-                  message,
+                  shape,
                   userId,
-                  chatId: chat.id,
-                  createdAt: chat.createdAt,
+                  currShapeId: currShape.id,
+                  createdAt: currShape.createdAt,
+                }),
+              );
+            }
+          });
+        }
+
+        // CLEAR BOARD
+        if (parsedData.type === "clear") {
+          const roomId = parsedData.roomId;
+
+          await prismaClient.shape.deleteMany({
+            where: {
+              roomId,
+            },
+          });
+
+          users.forEach((user) => {
+            if (user.rooms.includes(roomId) && user.socket !== ws) {
+              user.socket.send(
+                JSON.stringify({
+                  type: "clear",
+                  roomId,
                 }),
               );
             }

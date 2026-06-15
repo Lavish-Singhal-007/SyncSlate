@@ -18,6 +18,13 @@ export type Shape =
       startY: number;
       endX: number;
       endY: number;
+    }
+  | {
+      type: "pencil";
+      points: {
+        x: number;
+        y: number;
+      }[];
     };
 
-export type Tool = "rect" | "circle" | "line";
+export type Tool = "rect" | "circle" | "line" | "pencil";

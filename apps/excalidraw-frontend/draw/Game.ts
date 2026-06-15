@@ -1,14 +1,32 @@
 import { Shape, Tool } from "./types";
+import { createShape } from "./createShape";
+import { drawShape } from "./drawShape";
+
+// Simple Point type used for pencil tool points
+interface Point {
+  x: number;
+  y: number;
+}
 
 export class Game {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private existingShapes: Shape[] = [];
-
+  private onShapeCreated: (shape: Shape) => void;
   private selectedTool: Tool = "rect";
+  private currentPencilPoints: Point[] = [];
 
   public setTool(tool: Tool) {
     this.selectedTool = tool;
+  }
+  public clearBoard() {
+    this.existingShapes = [];
+    this.redraw();
+  }
+
+  public addShape(shape: Shape) {
+    this.existingShapes.push(shape);
+    this.redraw();
   }
 
   private isDrawing = false;
@@ -25,6 +43,10 @@ export class Game {
     this.startX = e.clientX - rect.left;
     this.startY = e.clientY - rect.top;
 
+    if (this.selectedTool === "pencil") {
+      this.currentPencilPoints = [{ x: this.startX, y: this.startY }];
+    }
+
     this.isDrawing = true;
   };
 
@@ -40,82 +62,67 @@ export class Game {
 
     this.redraw();
 
-    if (this.selectedTool === "rect") {
-      this.ctx.strokeRect(
-        this.startX,
-        this.startY,
-        this.currentWidth,
-        this.currentHeight,
-      );
+    if (this.selectedTool === "pencil") {
+      this.currentPencilPoints.push({ x: currentX, y: currentY });
+
+      const pencilShape: Shape = {
+        type: "pencil",
+        points: this.currentPencilPoints,
+      };
+
+      drawShape(this.ctx, pencilShape);
+      return;
     }
 
-    if (this.selectedTool === "circle") {
-      const radius = Math.sqrt(
-        this.currentWidth * this.currentWidth +
-          this.currentHeight * this.currentHeight,
-      );
+    const newShape = createShape(
+      this.selectedTool,
+      this.startX,
+      this.startY,
+      this.currentWidth,
+      this.currentHeight,
+    );
 
-      this.ctx.beginPath();
-
-      this.ctx.arc(this.startX, this.startY, radius, 0, Math.PI * 2);
-
-      this.ctx.stroke();
-    }
-
-    if (this.selectedTool === "line") {
-      this.ctx.beginPath();
-
-      this.ctx.moveTo(this.startX, this.startY);
-
-      this.ctx.lineTo(currentX, currentY);
-
-      this.ctx.stroke();
-    }
+    drawShape(this.ctx, newShape);
   };
 
-  private handleMouseUp = () => {
+  private handleMouseUp = async () => {
     if (!this.isDrawing) return;
 
-    if (this.selectedTool === "rect") {
-      this.existingShapes.push({
-        type: "rect",
-        x: this.startX,
-        y: this.startY,
-        width: this.currentWidth,
-        height: this.currentHeight,
-      });
+    if (this.selectedTool === "pencil") {
+      const pencilShape: Shape = {
+        type: "pencil",
+        points: this.currentPencilPoints,
+      };
+      this.existingShapes.push(pencilShape);
+      this.onShapeCreated(pencilShape);
+      this.redraw();
+      this.isDrawing = false;
+      return;
     }
 
-    if (this.selectedTool === "circle") {
-      const radius = Math.sqrt(
-        this.currentWidth * this.currentWidth +
-          this.currentHeight * this.currentHeight,
-      );
+    const newShape = createShape(
+      this.selectedTool,
+      this.startX,
+      this.startY,
+      this.currentWidth,
+      this.currentHeight,
+    );
 
-      this.existingShapes.push({
-        type: "circle",
-        centerX: this.startX,
-        centerY: this.startY,
-        radius,
-      });
-    }
-
-    if (this.selectedTool === "line") {
-      this.existingShapes.push({
-        type: "line",
-        startX: this.startX,
-        startY: this.startY,
-        endX: this.startX + this.currentWidth,
-        endY: this.startY + this.currentHeight,
-      });
-    }
+    this.existingShapes.push(newShape);
+    this.onShapeCreated(newShape);
 
     this.redraw();
     this.isDrawing = false;
   };
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    shapes: Shape[],
+    onShapeCreated: (shape: Shape) => void,
+  ) {
     this.canvas = canvas;
+    this.existingShapes = shapes;
+    this.onShapeCreated = onShapeCreated;
 
     const ctx = canvas.getContext("2d");
 
@@ -124,6 +131,7 @@ export class Game {
     }
 
     this.ctx = ctx;
+    this.redraw();
 
     this.init();
   }
@@ -140,33 +148,7 @@ export class Game {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     for (const shape of this.existingShapes) {
-      if (shape.type === "rect") {
-        this.ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
-      }
-
-      if (shape.type === "circle") {
-        this.ctx.beginPath();
-
-        this.ctx.arc(
-          shape.centerX,
-          shape.centerY,
-          shape.radius,
-          0,
-          Math.PI * 2,
-        );
-
-        this.ctx.stroke();
-      }
-
-      if (shape.type === "line") {
-        this.ctx.beginPath();
-
-        this.ctx.moveTo(shape.startX, shape.startY);
-
-        this.ctx.lineTo(shape.endX, shape.endY);
-
-        this.ctx.stroke();
-      }
+      drawShape(this.ctx, shape);
     }
   }
 
