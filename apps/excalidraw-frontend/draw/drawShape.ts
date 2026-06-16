@@ -1,6 +1,10 @@
 import { Shape } from "./types";
 
 export function drawShape(ctx: CanvasRenderingContext2D, shape: Shape) {
+  ctx.strokeStyle = shape.color;
+  ctx.lineWidth = shape.strokeWidth;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
   switch (shape.type) {
     case "rect":
       ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);

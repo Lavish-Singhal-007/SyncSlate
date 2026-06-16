@@ -1,6 +1,7 @@
 import { Shape, Tool } from "./types";
 import { createShape } from "./createShape";
 import { drawShape } from "./drawShape";
+import { getShapeAt } from "./getShape";
 
 // Simple Point type used for pencil tool points
 interface Point {
@@ -12,13 +13,28 @@ export class Game {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private existingShapes: Shape[] = [];
+  private redoStack: Shape[] = [];
+  private undoStack: Shape[] = [];
   private onShapeCreated: (shape: Shape) => void;
+  private onDelete: (shapeId: string) => void;
   private selectedTool: Tool = "rect";
   private currentPencilPoints: Point[] = [];
+  private selectedColor: string = "#000000FF";
+  private selectedStrokeWidth: number = 2;
+  private onStackChange?: (undoSize: number, redoSize: number) => void;
 
   public setTool(tool: Tool) {
     this.selectedTool = tool;
   }
+
+  public setColor(color: string) {
+    this.selectedColor = color;
+  }
+
+  public setStrokeWidth(strokeWidth: number) {
+    this.selectedStrokeWidth = strokeWidth;
+  }
+
   public clearBoard() {
     this.existingShapes = [];
     this.redraw();
@@ -27,6 +43,39 @@ export class Game {
   public addShape(shape: Shape) {
     this.existingShapes.push(shape);
     this.redraw();
+  }
+
+  public deleteShape(shapeId: string) {
+    this.existingShapes = this.existingShapes.filter(
+      (shape) => shape.id !== shapeId,
+    );
+    this.redraw();
+  }
+
+  public doUndo() {
+    if (this.undoStack.length === 0) return;
+    this.redoStack.push(this.undoStack[this.undoStack.length - 1]);
+    this.deleteShape(this.undoStack[this.undoStack.length - 1].id);
+    this.onDelete(this.undoStack[this.undoStack.length - 1].id);
+    this.undoStack.pop();
+    this.redraw();
+    this.emitStackChange();
+  }
+
+  public doRedo() {
+    if (this.redoStack.length === 0) return;
+    this.existingShapes.push(this.redoStack[this.redoStack.length - 1]);
+    this.onShapeCreated(this.redoStack[this.redoStack.length - 1]);
+    this.undoStack.push(this.redoStack[this.redoStack.length - 1]);
+    this.redoStack.pop();
+    this.redraw();
+    this.emitStackChange();
+  }
+
+  private emitStackChange() {
+    if (this.onStackChange) {
+      this.onStackChange(this.undoStack.length, this.redoStack.length);
+    }
   }
 
   private isDrawing = false;
@@ -42,6 +91,19 @@ export class Game {
 
     this.startX = e.clientX - rect.left;
     this.startY = e.clientY - rect.top;
+
+    this.redoStack = [];
+    this.emitStackChange();
+
+    if (this.selectedTool === "eraser") {
+      const shape = getShapeAt(this.startX, this.startY, this.existingShapes);
+
+      if (!shape) return;
+
+      this.onDelete(shape.id);
+      this.deleteShape(shape.id);
+      return;
+    }
 
     if (this.selectedTool === "pencil") {
       this.currentPencilPoints = [{ x: this.startX, y: this.startY }];
@@ -66,8 +128,11 @@ export class Game {
       this.currentPencilPoints.push({ x: currentX, y: currentY });
 
       const pencilShape: Shape = {
+        id: crypto.randomUUID(),
         type: "pencil",
         points: this.currentPencilPoints,
+        color: this.selectedColor,
+        strokeWidth: this.selectedStrokeWidth,
       };
 
       drawShape(this.ctx, pencilShape);
@@ -80,6 +145,8 @@ export class Game {
       this.startY,
       this.currentWidth,
       this.currentHeight,
+      this.selectedColor,
+      this.selectedStrokeWidth,
     );
 
     drawShape(this.ctx, newShape);
@@ -90,11 +157,16 @@ export class Game {
 
     if (this.selectedTool === "pencil") {
       const pencilShape: Shape = {
+        id: crypto.randomUUID(),
         type: "pencil",
         points: this.currentPencilPoints,
+        color: this.selectedColor,
+        strokeWidth: this.selectedStrokeWidth,
       };
       this.existingShapes.push(pencilShape);
       this.onShapeCreated(pencilShape);
+      this.undoStack.push(pencilShape);
+      this.emitStackChange();
       this.redraw();
       this.isDrawing = false;
       return;
@@ -106,10 +178,14 @@ export class Game {
       this.startY,
       this.currentWidth,
       this.currentHeight,
+      this.selectedColor,
+      this.selectedStrokeWidth,
     );
 
     this.existingShapes.push(newShape);
     this.onShapeCreated(newShape);
+    this.undoStack.push(newShape);
+    this.emitStackChange();
 
     this.redraw();
     this.isDrawing = false;
@@ -119,10 +195,14 @@ export class Game {
     canvas: HTMLCanvasElement,
     shapes: Shape[],
     onShapeCreated: (shape: Shape) => void,
+    onDelete: (shapeId: string) => void,
+    onStackChange?: (undoSize: number, redoSize: number) => void,
   ) {
     this.canvas = canvas;
     this.existingShapes = shapes;
     this.onShapeCreated = onShapeCreated;
+    this.onDelete = onDelete;
+    this.onStackChange = onStackChange;
 
     const ctx = canvas.getContext("2d");
 
@@ -134,6 +214,7 @@ export class Game {
     this.redraw();
 
     this.init();
+    this.emitStackChange();
   }
 
   private init() {

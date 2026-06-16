@@ -236,51 +236,6 @@ app.get("/shapes/:roomId", middleware, async (req, res) => {
   }
 });
 
-app.post("/shapes", async (req, res) => {
-  try {
-    console.log(req.body);
-
-    const { roomId, shape } = req.body;
-
-    const createdShape = await prismaClient.shape.create({
-      data: {
-        roomId,
-        shape,
-      },
-    });
-
-    res.json(createdShape);
-  } catch (e) {
-    console.error("POST /shapes error:", e);
-
-    res.status(500).json({
-      message: "Failed to create shape",
-    });
-  }
-});
-
-app.post("/clear", async (req, res) => {
-  try {
-    const { roomId } = req.body;
-
-    await prismaClient.shape.deleteMany({
-      where: {
-        roomId,
-      },
-    });
-
-    res.json({
-      message: "Board cleared",
-    });
-  } catch (e) {
-    console.error("POST /clear error:", e);
-
-    res.status(500).json({
-      message: "Failed to clear board",
-    });
-  }
-});
-
 app.listen(3001, () => {
   console.log("Server running on port 3001");
 });

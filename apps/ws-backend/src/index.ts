@@ -84,11 +84,18 @@ wss.on("connection", async (ws, request) => {
             return;
           }
 
-          const currShape = await prismaClient.shape.create({
-            data: {
-              roomId,
-              shape,
-              userId,
+          const currShape = await prismaClient.shape.upsert({
+            where: {
+              shapeId: shape.id,
+            },
+            update: {
+              shape: shape,
+            },
+            create: {
+              shapeId: shape.id,
+              roomId: roomId,
+              userId: userId,
+              shape: shape,
             },
           });
 
@@ -111,6 +118,9 @@ wss.on("connection", async (ws, request) => {
         // CLEAR BOARD
         if (parsedData.type === "clear") {
           const roomId = parsedData.roomId;
+          if (!currentUser.rooms.includes(roomId)) {
+            return;
+          }
 
           await prismaClient.shape.deleteMany({
             where: {
@@ -124,6 +134,33 @@ wss.on("connection", async (ws, request) => {
                 JSON.stringify({
                   type: "clear",
                   roomId,
+                }),
+              );
+            }
+          });
+        }
+
+        // DELETE SHAPE
+        if (parsedData.type === "deleteShape") {
+          const shapeId = parsedData.shapeId;
+          const roomId = parsedData.roomId;
+
+          if (!currentUser.rooms.includes(roomId)) {
+            return;
+          }
+
+          await prismaClient.shape.deleteMany({
+            where: {
+              shapeId,
+            },
+          });
+
+          users.forEach((user) => {
+            if (user.rooms.includes(roomId) && user.socket !== ws) {
+              user.socket.send(
+                JSON.stringify({
+                  type: "deleteShape",
+                  shapeId,
                 }),
               );
             }
