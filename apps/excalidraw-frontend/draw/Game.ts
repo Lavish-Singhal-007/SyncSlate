@@ -22,9 +22,25 @@ export class Game {
   private selectedColor: string = "#000000FF";
   private selectedStrokeWidth: number = 2;
   private onStackChange?: (undoSize: number, redoSize: number) => void;
+  private onDragShape?: (shapeId: string, shape: Shape) => void;
+  private selectedShape: Shape | null = null;
+  private isDragging = false;
+
+  private dragStartX = 0;
+  private dragStartY = 0;
+
+  private isDrawing = false;
+
+  private startX = 0;
+  private startY = 0;
+
+  private currentWidth = 0;
+  private currentHeight = 0;
 
   public setTool(tool: Tool) {
     this.selectedTool = tool;
+    if (tool !== "select") this.selectedShape = null;
+    this.redraw();
   }
 
   public setColor(color: string) {
@@ -52,6 +68,13 @@ export class Game {
     this.redraw();
   }
 
+  public dragShape(shapeId: string, shape: Shape) {
+    const index = this.existingShapes.findIndex((s) => s.id === shapeId);
+    if (index === -1) return;
+    this.existingShapes[index] = shape;
+    this.redraw();
+  }
+
   public doUndo() {
     if (this.undoStack.length === 0) return;
     this.redoStack.push(this.undoStack[this.undoStack.length - 1]);
@@ -72,25 +95,51 @@ export class Game {
     this.emitStackChange();
   }
 
+  public getThumbnail(): string {
+    const scale = 0.2;
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = this.canvas.width * scale;
+    tempCanvas.height = this.canvas.height * scale;
+
+    const tempCtx = tempCanvas.getContext("2d");
+
+    if (tempCtx) {
+      tempCtx.fillStyle = "#ffffff";
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+      tempCtx.drawImage(this.canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+
+      return tempCanvas.toDataURL("image/jpeg", 0.6);
+    }
+
+    return this.canvas.toDataURL("image/jpeg", 0.5);
+  }
+
   private emitStackChange() {
     if (this.onStackChange) {
       this.onStackChange(this.undoStack.length, this.redoStack.length);
     }
   }
 
-  private isDrawing = false;
-
-  private startX = 0;
-  private startY = 0;
-
-  private currentWidth = 0;
-  private currentHeight = 0;
-
   private handleMouseDown = (e: MouseEvent) => {
     const rect = this.canvas.getBoundingClientRect();
 
     this.startX = e.clientX - rect.left;
     this.startY = e.clientY - rect.top;
+
+    if (this.selectedTool === "select") {
+      const shape = getShapeAt(this.startX, this.startY, this.existingShapes);
+      this.selectedShape = shape ?? null;
+
+      if (shape) {
+        this.isDragging = true;
+        this.dragStartX = this.startX;
+        this.dragStartY = this.startY;
+      }
+
+      this.redraw();
+      return;
+    }
 
     this.redoStack = [];
     this.emitStackChange();
@@ -113,6 +162,50 @@ export class Game {
   };
 
   private handleMouseMove = (e: MouseEvent) => {
+    if (
+      this.selectedTool === "select" &&
+      this.isDragging &&
+      this.selectedShape
+    ) {
+      const rect = this.canvas.getBoundingClientRect();
+
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+
+      const dx = currentX - this.dragStartX;
+      const dy = currentY - this.dragStartY;
+
+      const shape = this.selectedShape;
+      if (shape.type === "rect") {
+        shape.x += dx;
+        shape.y += dy;
+      }
+      if (shape.type === "circle") {
+        shape.centerX += dx;
+        shape.centerY += dy;
+      }
+
+      if (shape.type === "line") {
+        shape.startX += dx;
+        shape.startY += dy;
+
+        shape.endX += dx;
+        shape.endY += dy;
+      }
+      if (shape.type === "pencil") {
+        shape.points = shape.points.map((point) => ({
+          x: point.x + dx,
+          y: point.y + dy,
+        }));
+      }
+      this.dragStartX = currentX;
+      this.dragStartY = currentY;
+
+      this.redraw();
+
+      return;
+    }
+
     if (!this.isDrawing) return;
 
     const rect = this.canvas.getBoundingClientRect();
@@ -153,6 +246,14 @@ export class Game {
   };
 
   private handleMouseUp = async () => {
+    if (this.isDragging) {
+      this.isDragging = false;
+      if (this.selectedShape === null) return;
+      if (this.onDragShape)
+        this.onDragShape(this.selectedShape.id, this.selectedShape);
+      return;
+    }
+
     if (!this.isDrawing) return;
 
     if (this.selectedTool === "pencil") {
@@ -197,12 +298,14 @@ export class Game {
     onShapeCreated: (shape: Shape) => void,
     onDelete: (shapeId: string) => void,
     onStackChange?: (undoSize: number, redoSize: number) => void,
+    onDragShape?: (shapeId: string, shape: Shape) => void,
   ) {
     this.canvas = canvas;
     this.existingShapes = shapes;
     this.onShapeCreated = onShapeCreated;
     this.onDelete = onDelete;
     this.onStackChange = onStackChange;
+    this.onDragShape = onDragShape;
 
     const ctx = canvas.getContext("2d");
 
@@ -229,15 +332,15 @@ export class Game {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     for (const shape of this.existingShapes) {
-      drawShape(this.ctx, shape);
+      drawShape(this.ctx, shape, shape.id === this.selectedShape?.id);
     }
   }
 
   destroy() {
-    this.canvas.addEventListener("mousedown", this.handleMouseDown);
+    this.canvas.removeEventListener("mousedown", this.handleMouseDown);
 
-    this.canvas.addEventListener("mousemove", this.handleMouseMove);
+    this.canvas.removeEventListener("mousemove", this.handleMouseMove);
 
-    this.canvas.addEventListener("mouseup", this.handleMouseUp);
+    this.canvas.removeEventListener("mouseup", this.handleMouseUp);
   }
 }

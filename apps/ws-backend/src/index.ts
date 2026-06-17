@@ -166,6 +166,38 @@ wss.on("connection", async (ws, request) => {
             }
           });
         }
+
+        // DRAG SHAPE
+        if (parsedData.type === "dragShape") {
+          const shapeId = parsedData.shapeId;
+          const roomId = parsedData.roomId;
+          const shape = parsedData.shape;
+
+          if (!currentUser.rooms.includes(roomId)) {
+            return;
+          }
+
+          await prismaClient.shape.update({
+            where: {
+              shapeId,
+            },
+            data: {
+              shape,
+            },
+          });
+
+          users.forEach((user) => {
+            if (user.rooms.includes(roomId) && user.socket !== ws) {
+              user.socket.send(
+                JSON.stringify({
+                  type: "dragShape",
+                  shapeId,
+                  shape,
+                }),
+              );
+            }
+          });
+        }
       } catch (err) {
         console.error(err);
       }

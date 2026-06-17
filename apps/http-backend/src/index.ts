@@ -7,6 +7,7 @@ import { prismaClient } from "@repo/db/client";
 import { CreateUserSchema, SigninSchema } from "@repo/common/config";
 import { middleware } from "./middleware";
 import cors from "cors";
+import crypto from "crypto";
 
 const app = express();
 
@@ -118,11 +119,12 @@ app.post("/signin", async (req, res) => {
 
 app.post("/room", middleware, async (req, res) => {
   try {
-    const { slug } = req.body;
+    const slug = req.body.slug || crypto.randomUUID();
 
-    const existingRoom = await prismaClient.room.findUnique({
+    const existingRoom = await prismaClient.room.findFirst({
       where: {
         slug,
+        adminId: req.userId,
       },
     });
 
@@ -145,8 +147,10 @@ app.post("/room", middleware, async (req, res) => {
       },
     });
 
+    // Return the integer roomId for the frontend to route to
     res.json({
       roomId: room.id,
+      slug: room.slug, // Returning the generated slug just in case you need it later
     });
   } catch (e) {
     res.status(500).json({
@@ -155,7 +159,83 @@ app.post("/room", middleware, async (req, res) => {
   }
 });
 
-app.get("/chats/:roomId", middleware, async (req, res) => {
+app.get("/rooms", middleware, async (req, res) => {
+  try {
+    // Ensure the user is authenticated
+    if (!req.userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // Fetch all rooms where the user is the admin
+    const rooms = await prismaClient.room.findMany({
+      where: {
+        adminId: req.userId,
+      },
+      orderBy: {
+        createdAt: "desc", // Shows the newest boards first
+      },
+    });
+
+    res.json({
+      rooms: rooms.map((room) => ({
+        id: room.id,
+        slug: room.slug, // We are using the slug as the visual title
+        thumbnail: room.thumbnail,
+        createdAt: room.createdAt,
+      })),
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Could not fetch rooms" });
+  }
+});
+
+app.delete("/room/:roomId", middleware, async (req, res) => {
+  try {
+    const roomId = Number(req.params.roomId);
+
+    const room = await prismaClient.room.findUnique({
+      where: {
+        id: roomId,
+      },
+    });
+
+    if (!room) {
+      return res.status(404).json({
+        message: "Room not found",
+      });
+    }
+
+    if (room.adminId !== req.userId) {
+      return res.status(403).json({
+        message: "Forbidden: You are not the admin of this room",
+      });
+    }
+
+    await prismaClient.shape.deleteMany({
+      where: {
+        roomId: roomId,
+      },
+    });
+
+    await prismaClient.room.delete({
+      where: {
+        id: roomId,
+      },
+    });
+
+    res.json({
+      message: "Room deleted successfully",
+    });
+  } catch (e) {
+    console.error("Delete room error:", e);
+    res.status(500).json({
+      message: "Could not delete room",
+    });
+  }
+});
+
+app.get("/shapes/:roomId", middleware, async (req, res) => {
   try {
     const { roomId } = req.params;
     const user = await prismaClient.user.findUnique({
@@ -175,46 +255,6 @@ app.get("/chats/:roomId", middleware, async (req, res) => {
       });
     }
 
-    const chats = await prismaClient.chat.findMany({
-      where: {
-        roomId: Number(roomId),
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 50,
-    });
-
-    res.json({
-      chats: chats.reverse(),
-    });
-  } catch (e) {
-    res.status(500).json({
-      message: "Could not fetch chats",
-    });
-  }
-});
-
-app.get("/shapes/:roomId", middleware, async (req, res) => {
-  try {
-    const { roomId } = req.params;
-    const user = await prismaClient.user.findUnique({
-      where: {
-        id: req.userId,
-      },
-      include: {
-        rooms: true,
-      },
-    });
-
-    // const hasAccess = user?.rooms.some((room) => room.id === Number(roomId));
-
-    // if (!hasAccess) {
-    //   return res.status(403).json({
-    //     message: "Forbidden",
-    //   });
-    // }
-
     const shapes = await prismaClient.shape.findMany({
       where: {
         roomId: Number(roomId),
@@ -233,6 +273,53 @@ app.get("/shapes/:roomId", middleware, async (req, res) => {
       message: "Could not fetch shapes",
     });
     console.log("Could not fetch shapes");
+  }
+});
+
+app.put("/room/:roomId/thumbnail", middleware, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { thumbnail } = req.body;
+
+    if (!thumbnail) {
+      return res.status(400).json({
+        message: "No thumbnail provided",
+      });
+    }
+
+    const user = await prismaClient.user.findUnique({
+      where: {
+        id: req.userId,
+      },
+      include: {
+        rooms: true,
+      },
+    });
+
+    const hasAccess = user?.rooms.some((room) => room.id === Number(roomId));
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        message: "Forbidden",
+      });
+    }
+
+    await prismaClient.room.update({
+      where: {
+        id: Number(roomId),
+      },
+      data: {
+        thumbnail,
+      },
+    });
+
+    res.json({
+      message: "Thumbnail updated",
+    });
+  } catch (e) {
+    res.status(500).json({
+      message: "Could not update thumbnail",
+    });
   }
 });
 

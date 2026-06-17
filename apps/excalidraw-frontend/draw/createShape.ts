@@ -62,5 +62,7 @@ export function createShape(
       };
     case "eraser":
       throw new Error("Eraser does not create shapes");
+    case "select":
+      throw new Error("Select does not create shapes");
   }
 }

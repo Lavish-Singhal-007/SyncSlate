@@ -39,4 +39,4 @@ export type Shape =
       strokeWidth: number;
     };
 
-export type Tool = "rect" | "circle" | "line" | "pencil" | "eraser";
+export type Tool = "rect" | "circle" | "line" | "pencil" | "eraser" | "select";
