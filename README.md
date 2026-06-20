@@ -40,21 +40,7 @@ Turborepo · pnpm workspaces · Next.js 16 · React 19 · TypeScript · Tailwind
 
 ## Architecture
 
-```
-┌─────────────────────┐      HTTP (REST)      ┌──────────────────┐
-│  Next.js Frontend    │ ───────────────────▶ │  Express API      │
-│  (canvas, dashboard, │                       │  (auth, rooms,    │
-│   auth pages)         │                       │   shapes, thumbs) │
-└──────────┬───────────┘                       └─────────┬────────┘
-           │                                              │
-           │  WebSocket (ws://)                           │  Prisma
-           ▼                                              ▼
-┌──────────────────────┐                       ┌──────────────────┐
-│  WebSocket Server      │ ────────────────────▶│   PostgreSQL      │
-│  (room sync, cursors,  │     persists shapes    │   (users, rooms,  │
-│   shape persistence)   │                       │    shapes)         │
-└──────────────────────┘                       └──────────────────┘
-```
+![alt text](image.png)
 
 A full breakdown of API routes, WebSocket message types, and the database schema is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
