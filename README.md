@@ -40,7 +40,7 @@ Turborepo · pnpm workspaces · Next.js 16 · React 19 · TypeScript · Tailwind
 
 ## Architecture
 
-![Architecture Diagram](image.png)
+![Architecture Diagram](architecture.png)
 
 A full breakdown of API routes, WebSocket message types, and the database schema is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
