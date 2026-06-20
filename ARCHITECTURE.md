@@ -2,6 +2,8 @@
 
 This document covers the implementation details that don't belong in the top-level README: full API routes, WebSocket message contracts, the database schema, and shared packages.
 
+![Architecture Diagram](High_Level_Architecture_SyncSlate.png)
+
 ## Apps in detail
 
 ### `apps/excalidraw-frontend`
