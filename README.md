@@ -56,7 +56,7 @@ Turborepo · pnpm workspaces · Next.js 16 · React 19 · TypeScript · Tailwind
 └──────────────────────┘                       └──────────────────┘
 ```
 
-A full breakdown of API routes, WebSocket message types, and the database schema is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+A full breakdown of API routes, WebSocket message types, and the database schema is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Repository structure
 
@@ -118,4 +118,4 @@ pnpm dev
 - Room-level access checks for shapes/thumbnail endpoints are implemented but currently disabled.
 - Undo/redo is local to the current browser session, not yet a synced collaborative action.
 
-More detail, including the full API reference and database schema, is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+More detail, including the full API reference and database schema, is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
