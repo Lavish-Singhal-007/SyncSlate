@@ -178,7 +178,7 @@ app.get("/rooms", middleware, async (req, res) => {
     });
 
     res.json({
-      rooms: rooms.map((room) => ({
+      rooms: rooms.map((room: any) => ({
         id: room.id,
         slug: room.slug, // We are using the slug as the visual title
         thumbnail: room.thumbnail,
