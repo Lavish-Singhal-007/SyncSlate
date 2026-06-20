@@ -172,19 +172,22 @@ wss.on("connection", async (ws, request) => {
           const shapeId = parsedData.shapeId;
           const roomId = parsedData.roomId;
           const shape = parsedData.shape;
+          const flag = parsedData.flag;
 
           if (!currentUser.rooms.includes(roomId)) {
             return;
           }
 
-          await prismaClient.shape.update({
-            where: {
-              shapeId,
-            },
-            data: {
-              shape,
-            },
-          });
+          if (flag) {
+            await prismaClient.shape.update({
+              where: {
+                shapeId,
+              },
+              data: {
+                shape,
+              },
+            });
+          }
 
           users.forEach((user) => {
             if (user.rooms.includes(roomId) && user.socket !== ws) {
@@ -197,6 +200,26 @@ wss.on("connection", async (ws, request) => {
               );
             }
           });
+        }
+
+        // MOUSE MOVE
+        if (parsedData.type === "mouse_move") {
+          const roomId = parsedData.roomId;
+
+          users.forEach((user) => {
+            if (user.rooms.includes(roomId) && user.socket !== ws) {
+              user.socket.send(
+                JSON.stringify({
+                  type: "mouse_move",
+                  userId,
+                  x: parsedData.x,
+                  y: parsedData.y,
+                }),
+              );
+            }
+          });
+
+          return;
         }
       } catch (err) {
         console.error(err);

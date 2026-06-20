@@ -9,6 +9,8 @@ interface Point {
   y: number;
 }
 
+type ResizeDirection = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
+
 export class Game {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -22,9 +24,16 @@ export class Game {
   private selectedColor: string = "#000000FF";
   private selectedStrokeWidth: number = 2;
   private onStackChange?: (undoSize: number, redoSize: number) => void;
-  private onDragShape?: (shapeId: string, shape: Shape) => void;
+  private onChangeShape?: (
+    shapeId: string,
+    shape: Shape,
+    flag: boolean,
+  ) => void;
   private selectedShape: Shape | null = null;
   private isDragging = false;
+  private lastSent = 0;
+  private isResizing = false;
+  private resizeDirection: ResizeDirection | null = null;
 
   private dragStartX = 0;
   private dragStartY = 0;
@@ -95,6 +104,52 @@ export class Game {
     this.emitStackChange();
   }
 
+  private isResizeHandleClicked(
+    mouseX: number,
+    mouseY: number,
+    shape: Shape,
+  ): ResizeDirection | null {
+    if (shape.type !== "rect") return null;
+
+    const pad = 4;
+    const minX = shape.x - pad;
+    const minY = shape.y - pad;
+    const maxX = shape.x + shape.width + pad;
+    const maxY = shape.y + shape.height + pad;
+
+    const midX = minX + (maxX - minX) / 2;
+    const midY = minY + (maxY - minY) / 2;
+
+    const handles = [
+      { dir: "nw", x: minX, y: minY },
+      { dir: "n", x: midX, y: minY },
+      { dir: "ne", x: maxX, y: minY },
+      { dir: "w", x: minX, y: midY },
+      { dir: "e", x: maxX, y: midY },
+      { dir: "sw", x: minX, y: maxY },
+      { dir: "s", x: midX, y: maxY },
+      { dir: "se", x: maxX, y: maxY },
+    ] as const;
+
+    const hitSize = 30;
+
+    for (const handle of handles) {
+      const handleStartX = handle.x - hitSize / 2;
+      const handleStartY = handle.y - hitSize / 2;
+
+      if (
+        mouseX >= handleStartX &&
+        mouseX <= handleStartX + hitSize &&
+        mouseY >= handleStartY &&
+        mouseY <= handleStartY + hitSize
+      ) {
+        return handle.dir as ResizeDirection;
+      }
+    }
+
+    return null;
+  }
+
   public getThumbnail(): string {
     const scale = 0.2;
     const tempCanvas = document.createElement("canvas");
@@ -130,6 +185,20 @@ export class Game {
     if (this.selectedTool === "select") {
       const shape = getShapeAt(this.startX, this.startY, this.existingShapes);
       this.selectedShape = shape ?? null;
+
+      if (shape) {
+        const handleDir = this.isResizeHandleClicked(
+          this.startX,
+          this.startY,
+          shape,
+        );
+        if (handleDir) {
+          this.isResizing = true;
+          this.resizeDirection = handleDir;
+          this.redraw();
+          return;
+        }
+      }
 
       if (shape) {
         this.isDragging = true;
@@ -201,6 +270,58 @@ export class Game {
       this.dragStartX = currentX;
       this.dragStartY = currentY;
 
+      const now = Date.now();
+
+      if (now - this.lastSent > 30) {
+        if (this.onChangeShape)
+          this.onChangeShape(this.selectedShape.id, this.selectedShape, false);
+        this.lastSent = now;
+      }
+
+      this.redraw();
+
+      return;
+    }
+
+    if (
+      this.isResizing &&
+      this.resizeDirection &&
+      this.selectedTool === "select" &&
+      this.selectedShape &&
+      this.selectedShape.type === "rect"
+    ) {
+      const rect = this.canvas.getBoundingClientRect();
+
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+
+      const shape = this.selectedShape;
+
+      // Adjust Width and X based on East/West
+      if (this.resizeDirection.includes("e")) {
+        shape.width = currentX - shape.x;
+      }
+      if (this.resizeDirection.includes("w")) {
+        shape.width += shape.x - currentX;
+        shape.x = currentX;
+      }
+
+      // Adjust Height and Y based on North/South
+      if (this.resizeDirection.includes("s")) {
+        shape.height = currentY - shape.y;
+      }
+      if (this.resizeDirection.includes("n")) {
+        shape.height += shape.y - currentY;
+        shape.y = currentY;
+      }
+
+      const now = Date.now();
+
+      if (now - this.lastSent > 30) {
+        if (this.onChangeShape)
+          this.onChangeShape(this.selectedShape.id, this.selectedShape, false);
+        this.lastSent = now;
+      }
       this.redraw();
 
       return;
@@ -249,8 +370,17 @@ export class Game {
     if (this.isDragging) {
       this.isDragging = false;
       if (this.selectedShape === null) return;
-      if (this.onDragShape)
-        this.onDragShape(this.selectedShape.id, this.selectedShape);
+      if (this.onChangeShape)
+        this.onChangeShape(this.selectedShape.id, this.selectedShape, true);
+      return;
+    }
+
+    if (this.isResizing) {
+      this.isResizing = false;
+      this.resizeDirection = null;
+      if (this.selectedShape === null) return;
+      if (this.onChangeShape)
+        this.onChangeShape(this.selectedShape.id, this.selectedShape, true);
       return;
     }
 
@@ -298,14 +428,14 @@ export class Game {
     onShapeCreated: (shape: Shape) => void,
     onDelete: (shapeId: string) => void,
     onStackChange?: (undoSize: number, redoSize: number) => void,
-    onDragShape?: (shapeId: string, shape: Shape) => void,
+    onChangeShape?: (shapeId: string, shape: Shape, flag: boolean) => void,
   ) {
     this.canvas = canvas;
     this.existingShapes = shapes;
     this.onShapeCreated = onShapeCreated;
     this.onDelete = onDelete;
     this.onStackChange = onStackChange;
-    this.onDragShape = onDragShape;
+    this.onChangeShape = onChangeShape;
 
     const ctx = canvas.getContext("2d");
 
@@ -328,11 +458,49 @@ export class Game {
     this.canvas.addEventListener("mouseup", this.handleMouseUp);
   }
 
-  private redraw() {
+  public redraw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     for (const shape of this.existingShapes) {
       drawShape(this.ctx, shape, shape.id === this.selectedShape?.id);
+    }
+
+    // draw cursors
+    if ((window as any).remoteCursors) {
+      const cursors = (window as any).remoteCursors;
+
+      this.ctx.save();
+
+      for (const userId in cursors) {
+        const c = cursors[userId];
+        const cursorColor = c.color || "#635BFF"; // Fallback to SyncSlate purple
+
+        // 1. Draw the Custom Mouse Pointer (Arrow)
+        this.ctx.beginPath();
+        this.ctx.moveTo(c.x, c.y); // Point 1: The exact click tip
+        this.ctx.lineTo(c.x + 12, c.y + 12); // Point 2: The right wing
+        this.ctx.lineTo(c.x + 5, c.y + 12); // Point 3: The inner notch
+        this.ctx.lineTo(c.x, c.y + 18); // Point 4: The bottom tail
+        this.ctx.closePath(); // Back to the tip
+
+        // 2. Fill it with the user's color
+        this.ctx.fillStyle = cursorColor;
+        this.ctx.fill();
+
+        // 3. Give it a crisp white outline so it stands out against dark shapes
+        this.ctx.strokeStyle = "#FFFFFF";
+        this.ctx.lineWidth = 1.5;
+        this.ctx.stroke();
+
+        // 4. Draw the User ID label
+        this.ctx.font = "500 12px system-ui, sans-serif";
+        this.ctx.fillStyle = "#1E293B";
+
+        // Shift the text nicely out of the way of the newly drawn arrow
+        this.ctx.fillText(userId.slice(0, 4), c.x + 16, c.y + 24);
+      }
+
+      this.ctx.restore();
     }
   }
 

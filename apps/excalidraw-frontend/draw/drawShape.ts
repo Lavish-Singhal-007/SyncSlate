@@ -82,22 +82,56 @@ export function drawShape(
       break;
   }
 
-  // Draw the selection box if the shape is selected
   if (isSelected) {
     ctx.save();
 
-    // Set styles specific to the selection box so it doesn't look like a drawn shape
-    ctx.strokeStyle = "#635BFF"; // Your SyncSlate brand purple
+    const pad = 4;
+    const minX = bounds.x - pad;
+    const minY = bounds.y - pad;
+    const maxX = bounds.x + bounds.width + pad;
+    const maxY = bounds.y + bounds.height + pad;
+
+    // Selection box
+    ctx.strokeStyle = "#635BFF";
     ctx.lineWidth = 1.5;
     ctx.setLineDash([5, 5]);
 
-    // We add a padding of 4px around the bounding box so it doesn't overlap the shape perfectly
-    ctx.strokeRect(
-      bounds.x - 4,
-      bounds.y - 4,
-      bounds.width + 8,
-      bounds.height + 8,
-    );
+    ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+
+    // Reset dash for the handles
+    ctx.setLineDash([]);
+
+    // Calculate midpoints for the 8 handles
+    const midX = minX + (maxX - minX) / 2;
+    const midY = minY + (maxY - minY) / 2;
+
+    // Array of all 8 handle center coordinates
+    const handles = [
+      { x: minX, y: minY }, // Top-Left
+      { x: midX, y: minY }, // Top-Center
+      { x: maxX, y: minY }, // Top-Right
+      { x: minX, y: midY }, // Middle-Left
+      { x: maxX, y: midY }, // Middle-Right
+      { x: minX, y: maxY }, // Bottom-Left
+      { x: midX, y: maxY }, // Bottom-Center
+      { x: maxX, y: maxY }, // Bottom-Right
+    ];
+
+    const handleSize = 10;
+
+    // Set styles once before the loop
+    ctx.fillStyle = "#635BFF";
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 1;
+
+    // Draw all 8 handles
+    handles.forEach((handle) => {
+      const handleX = handle.x - handleSize / 2;
+      const handleY = handle.y - handleSize / 2;
+
+      ctx.fillRect(handleX, handleY, handleSize, handleSize);
+      ctx.strokeRect(handleX, handleY, handleSize, handleSize);
+    });
 
     ctx.restore();
   }

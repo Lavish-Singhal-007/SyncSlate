@@ -16,7 +16,12 @@ export function getShapeAt(
       const top = Math.min(shape.y, shape.y + shape.height);
       const bottom = Math.max(shape.y, shape.y + shape.height);
 
-      if (x >= left && x <= right && y >= top && y <= bottom) {
+      if (
+        x >= left - 15 &&
+        x <= right + 15 &&
+        y >= top - 15 &&
+        y <= bottom + 15
+      ) {
         return shape;
       }
     }

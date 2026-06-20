@@ -247,13 +247,13 @@ app.get("/shapes/:roomId", middleware, async (req, res) => {
       },
     });
 
-    const hasAccess = user?.rooms.some((room) => room.id === Number(roomId));
+    // const hasAccess = user?.rooms.some((room) => room.id === Number(roomId));
 
-    if (!hasAccess) {
-      return res.status(403).json({
-        message: "Forbidden",
-      });
-    }
+    // if (!hasAccess) {
+    //   return res.status(403).json({
+    //     message: "Forbidden",
+    //   });
+    // }
 
     const shapes = await prismaClient.shape.findMany({
       where: {
@@ -263,9 +263,6 @@ app.get("/shapes/:roomId", middleware, async (req, res) => {
         createdAt: "asc",
       },
     });
-
-    const shape = await prismaClient.shape.findMany();
-    console.log(shape);
 
     res.json(shapes);
   } catch (e) {
@@ -287,22 +284,22 @@ app.put("/room/:roomId/thumbnail", middleware, async (req, res) => {
       });
     }
 
-    const user = await prismaClient.user.findUnique({
-      where: {
-        id: req.userId,
-      },
-      include: {
-        rooms: true,
-      },
-    });
+    // const user = await prismaClient.user.findUnique({
+    //   where: {
+    //     id: req.userId,
+    //   },
+    //   include: {
+    //     rooms: true,
+    //   },
+    // });
 
-    const hasAccess = user?.rooms.some((room) => room.id === Number(roomId));
+    // const hasAccess = user?.rooms.some((room) => room.id === Number(roomId));
 
-    if (!hasAccess) {
-      return res.status(403).json({
-        message: "Forbidden",
-      });
-    }
+    // if (!hasAccess) {
+    //   return res.status(403).json({
+    //     message: "Forbidden",
+    //   });
+    // }
 
     await prismaClient.room.update({
       where: {
