@@ -78,6 +78,16 @@ Create `packages/db/.env`:
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
 JWT_SECRET="replace-with-a-secure-secret"
+HTTP_PORT=3001
+WS_PORT=8080
+FRONTEND_URL="http://localhost:3000"
+```
+
+Create `apps/excalidraw-frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_HTTP_BACKEND_URL="http://localhost:3001"
+NEXT_PUBLIC_WS_BACKEND_URL="ws://localhost:8080"
 ```
 
 ```sh
@@ -100,7 +110,6 @@ pnpm dev
 
 ## Known limitations
 
-- Frontend API/WebSocket URLs are currently hardcoded to `localhost`, not read from env config — a clear next step before deployment.
 - Room-level access checks for shapes/thumbnail endpoints are implemented but currently disabled.
 - Undo/redo is local to the current browser session, not yet a synced collaborative action.
 

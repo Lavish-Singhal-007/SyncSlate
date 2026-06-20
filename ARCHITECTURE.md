@@ -42,9 +42,9 @@ Key modules:
 
 Auth middleware accepts either `Authorization: Bearer <token>` or the raw token directly.
 
-### `apps/ws-backend` (port `8080`)
+### `apps/ws-backend` (default port `8080`)
 
-Clients connect with `ws://localhost:8080?token=<jwt>`. The server verifies the JWT and tracks connected users and their joined rooms.
+Clients connect with `${NEXT_PUBLIC_WS_BACKEND_URL}?token=<jwt>`. The server verifies the JWT and tracks connected users and their joined rooms.
 
 | Message type  | Behavior                                                            |
 | ------------- | ------------------------------------------------------------------- |
@@ -79,5 +79,5 @@ Migration history covers user/room creation, the evolution from chat-rooms to wh
 ## Notes on trade-offs
 
 - **Shapes as JSON blobs**: keeps the schema flexible while the supported shape set is still evolving, at the cost of losing per-shape-type query/index support. Deliberate, not an oversight.
-- **Hardcoded localhost URLs**: the frontend's API and WebSocket URLs are not yet read from environment config — straightforward to fix before deployment, just not done yet.
+- **Environment-specific URLs**: frontend HTTP/WebSocket URLs and backend ports are read from env config, with localhost defaults for development.
 - **Disabled room access checks**: the shapes and thumbnail endpoints have access-check logic written but currently commented out — next on the list before this is production-ready.

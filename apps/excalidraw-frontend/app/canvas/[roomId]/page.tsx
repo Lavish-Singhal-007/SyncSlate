@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Game } from "@/draw/Game";
-import { Tool } from "@/draw/types";
+import { Shape, Tool } from "@/draw/types";
 import { api } from "@/lib/axios";
 import { jsPDF } from "jspdf";
 import { useParams, useRouter } from "next/navigation";
@@ -54,7 +54,7 @@ export default function CanvasPage() {
   const params = useParams();
   const roomId = Number(params.roomId);
 
-  async function getShapes(roomId: number) {
+  async function getShapes(roomId: number): Promise<{ shape: Shape }[]> {
     const res = await api.get(`/shapes/${roomId}`);
     return res.data;
   }
@@ -160,9 +160,11 @@ export default function CanvasPage() {
 
         if (!isMounted) return;
 
-        const shapes = dbShapes.map((item: any) => item.shape);
+        const shapes = dbShapes.map((item) => item.shape);
         const token = localStorage.getItem("token");
-        const ws = new WebSocket(`ws://localhost:8080?token=${token}`);
+        const wsBackendUrl =
+          process.env.NEXT_PUBLIC_WS_BACKEND_URL || "ws://localhost:8080";
+        const ws = new WebSocket(`${wsBackendUrl}?token=${token}`);
 
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: "join_room", roomId }));
@@ -215,19 +217,25 @@ export default function CanvasPage() {
               x: data.x,
               y: data.y,
             };
-            (window as any).remoteCursors = cursorsRef.current;
+            (
+              window as Window & {
+                remoteCursors?: Record<string, { x: number; y: number }>;
+              }
+            ).remoteCursors = cursorsRef.current;
             gameRef.current?.redraw();
           }
         };
 
         setIsLoading(false);
-      } catch (err: any) {
+      } catch (err) {
         if (!isMounted) return;
 
         console.error("Failed to load room:", err);
-        if (err.response?.status === 403) {
+        const status = (err as { response?: { status?: number } }).response
+          ?.status;
+        if (status === 403) {
           setError("You don't have permission to access this whiteboard.");
-        } else if (err.response?.status === 404) {
+        } else if (status === 404) {
           setError("This whiteboard could not be found.");
         } else {
           setError("Failed to load the whiteboard. Please try again.");

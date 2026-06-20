@@ -8,12 +8,13 @@ import { CreateUserSchema, SigninSchema } from "@repo/common/config";
 import { middleware } from "./middleware";
 import cors from "cors";
 import crypto from "crypto";
+import { FRONTEND_URL, HTTP_PORT } from "./env";
 
 const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: FRONTEND_URL,
     credentials: true,
   }),
 );
@@ -320,6 +321,6 @@ app.put("/room/:roomId/thumbnail", middleware, async (req, res) => {
   }
 });
 
-app.listen(3001, () => {
-  console.log("Server running on port 3001");
+app.listen(HTTP_PORT, () => {
+  console.log(`Server running on port ${HTTP_PORT}`);
 });
