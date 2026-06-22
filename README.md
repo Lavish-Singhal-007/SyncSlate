@@ -2,6 +2,8 @@
 
 **A real-time collaborative whiteboard, built from scratch as a Turborepo monorepo.**
 
+🔗 **Live demo:** [get-sync-slate.vercel.app](https://get-sync-slate.vercel.app)
+
 SyncSlate lets multiple users draw on the same canvas simultaneously — shapes, cursors, and edits sync live across every connected client, are persisted to PostgreSQL, and can be exported as PNG or PDF. The project is split into three independently deployable services (Next.js frontend, Express HTTP API, WebSocket sync server) sharing common packages for validation, database access, and config.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
